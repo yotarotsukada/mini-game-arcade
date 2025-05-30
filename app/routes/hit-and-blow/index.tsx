@@ -1,5 +1,5 @@
 import type { MetaFunction, LinksFunction } from "@remix-run/node";
-import stylesUrl from "./styles.css";
+import stylesUrl from "./styles.css?url";
 import GuessInput from "./components/GuessInput";
 import AttemptHistory, { type Attempt } from "./components/AttemptHistory";
 import GameResult from "./components/GameResult";
