@@ -1,10 +1,14 @@
-import type { MetaFunction, LinksFunction } from "@remix-run/node";
+import type { MetaFunction, LinksFunction, ActionFunctionArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
+import { useFetcher } from "@remix-run/react";
 import stylesUrl from "./styles.css?url";
 import GuessInput from "./components/GuessInput";
 import AttemptHistory, { type Attempt } from "./components/AttemptHistory";
 import GameResult from "./components/GameResult";
 import WinMessage from "./components/WinMessage";
 import { generateSecretNumber, calculateHitAndBlow } from "./utils/game";
+import { createPlayHistory } from "~/services/playHistory.server";
+import { requireUserId } from "~/services/auth.server"; // Corrected import path
 import React, { useState, useEffect, useCallback } from 'react';
 
 export const links: LinksFunction = () => [
@@ -20,7 +24,26 @@ export const meta: MetaFunction = () => {
 
 const NUMBER_OF_DIGITS = 4;
 
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const userId = await requireUserId(request);
+  const formData = await request.formData();
+  const attempts = Number(formData.get("attempts"));
+
+  if (isNaN(attempts) || attempts <= 0) {
+    return json({ error: "Invalid attempt count" }, { status: 400 });
+  }
+
+  try {
+    await createPlayHistory(userId, attempts);
+    return json({ success: true });
+  } catch (error) {
+    console.error("Failed to save play history:", error);
+    return json({ error: "Failed to save play history" }, { status: 500 });
+  }
+};
+
 export default function HitAndBlowIndex() {
+  const fetcher = useFetcher();
   const [secretNumber, setSecretNumber] = useState('');
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [latestHits, setLatestHits] = useState(0);
@@ -51,6 +74,14 @@ export default function HitAndBlowIndex() {
 
     if (hits === NUMBER_OF_DIGITS) {
       setIsGuessed(true);
+      // Call action to save play history
+      // We need to pass the number of attempts.
+      // The attempts array has just been updated, so its length is the current number of attempts.
+      const currentAttempts = attempts.length + 1; // +1 because state update is pending
+      fetcher.submit(
+        { attempts: currentAttempts.toString() },
+        { method: "post" }
+      );
     }
   };
 
