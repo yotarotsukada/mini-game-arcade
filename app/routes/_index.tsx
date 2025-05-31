@@ -1,19 +1,29 @@
 import type { MetaFunction } from "@remix-run/node";
+import { useRouteLoaderData } from "@remix-run/react"; // Import useRouteLoaderData
+import type { User } from "~/services/auth.server"; // Import User type
+// It seems like root loader data isn't directly accessible with useLoaderData here.
+// We need to use useRouteLoaderData("root") or ensure data is passed down.
+// For simplicity, let's assume we can access it via useRouteLoaderData.
+// If not, we'd need to adjust how user data is passed or loaded specifically for this route.
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "New Remix App" },
-    { name: "description", content: "Welcome to Remix!" },
+    { title: "New Remix App - Welcome" },
+    { name: "description", content: "Welcome to Remix with Google Auth!" },
   ];
 };
 
 export default function Index() {
+  // Attempt to get user data from the root loader
+  const rootData = useRouteLoaderData("root") as { user: User | null } | undefined;
+  const user = rootData?.user;
+
   return (
     <div className="flex h-screen items-center justify-center">
       <div className="flex flex-col items-center gap-16">
         <header className="flex flex-col items-center gap-9">
           <h1 className="leading text-2xl font-bold text-gray-800 dark:text-gray-100">
-            Welcome to <span className="sr-only">Remix</span>
+            {user ? `Welcome, ${user.displayName || user.email}!` : "Welcome to Remix!"}
           </h1>
           <div className="h-[144px] w-[434px]">
             <img
@@ -28,9 +38,14 @@ export default function Index() {
             />
           </div>
         </header>
-        <nav className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-gray-200 p-6 dark:border-gray-700">
-          <p className="leading-6 text-gray-700 dark:text-gray-200">
-            What&apos;s next?
+        <div className="flex flex-col items-center justify-center gap-4 rounded-3xl border border-gray-200 p-6 dark:border-gray-700 dark:text-gray-200">
+          {user ? (
+            <p>You are logged in. You can explore the application.</p>
+          ) : (
+            <p>Please <a href="/login" className="text-blue-700 hover:underline dark:text-blue-500">login</a> to continue.</p>
+          )}
+          <p className="mt-4 leading-6 text-gray-700 dark:text-gray-200">
+            What&apos;s next? (Original links)
           </p>
           <ul>
             {resources.map(({ href, text, icon }) => (
@@ -47,12 +62,13 @@ export default function Index() {
               </li>
             ))}
           </ul>
-        </nav>
+        </div>
       </div>
     </div>
   );
 }
 
+// Keeping original resources for now, can be removed or changed as needed.
 const resources = [
   {
     href: "https://remix.run/start/quickstart",
