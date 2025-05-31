@@ -38,3 +38,25 @@ const googleStrategy = new GoogleStrategy(
 );
 
 authenticator.use(googleStrategy);
+
+// Utility functions for requiring and getting user ID
+import { redirect } from "@remix-run/node";
+
+export async function requireUserId(
+  request: Request,
+  redirectTo: string = new URL(request.url).pathname
+): Promise<string> {
+  const user = await authenticator.isAuthenticated(request);
+  if (!user) {
+    // If the user is not authenticated, redirect to login
+    // preserving the path they were trying to access.
+    const searchParams = new URLSearchParams([["redirectTo", redirectTo]]);
+    throw redirect(`/login?${searchParams}`);
+  }
+  return user.id;
+}
+
+export async function getUserId(request: Request): Promise<string | null> {
+  const user = await authenticator.isAuthenticated(request);
+  return user ? user.id : null;
+}
